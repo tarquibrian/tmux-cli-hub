@@ -28,10 +28,18 @@ project_label="$(project_name "$project_path")"
 # Refresh status so the live rows carry an up-to-date glyph.
 sh "$script_dir/status.sh"
 
-set -- -c "$current_client" -T " cli-hub · $project_label "
+live_count="$(tmux list-windows -t "$project_session" -F x 2>/dev/null | wc -l | tr -d ' ')"
+
+# Title doubles as the "no agents yet" hint when the project has none. The menu
+# is anchored bottom-left (-x 0 -y S) instead of the default centre.
+if [ "${live_count:-0}" -gt 0 ]; then
+  title=" cli-hub · $project_label "
+else
+  title=" cli-hub · $project_label — no agents yet, start one: "
+fi
+set -- -c "$current_client" -x 0 -y S -T "$title"
 
 # --- Live agents in this project (switch to the window) ---
-live_count="$(tmux list-windows -t "$project_session" -F x 2>/dev/null | wc -l | tr -d ' ')"
 if [ "${live_count:-0}" -gt 0 ]; then
   while IFS='|' read -r wid wname wstatus; do
     [ -n "$wid" ] || continue

@@ -135,6 +135,19 @@ has "cancel entry"            "Cancel"
 # resume launcher carries the provider's native resume flag + an ASCII name
 has "resume cmd carries --resume"   "claude --resume"
 has "resume window name is ASCII"   "'claude-resume'"
+hasx() { if grep -Fxq -- "$2" "$DUMP" 2>/dev/null; then ok "$1"; else no "$1" "no line '$2'"; fi; }
+hasx "menu -x flag present"          "-x"
+hasx "menu -y flag present"          "-y"
+hasx "menu anchored at status line"  "S"
+
+# Empty project: the title carries the "no agents yet" hint.
+sh "$SCRIPTS/menu-overlay.sh" dummyclient work %0 /tmp/nowhere/emptyproj >/dev/null 2>&1
+has "empty project title hint"       "no agents yet"
+has "empty project still offers New" "＋ New claude"
+
+# prefix+m with no popup routes to the overlay instead of a dead-end message.
+sh "$SCRIPTS/toggle.sh" dummyclient work /tmp/nowhere/emptyproj %0 >/dev/null 2>&1
+has "toggle w/o popup opens overlay"  "＋ New claude"
 
 echo "== switcher rich format =="
 fmt="$(. "$SCRIPTS/lib.sh"; agent_choose_format)"

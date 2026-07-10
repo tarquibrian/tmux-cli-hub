@@ -65,8 +65,8 @@ Default (prefix + key):
 | `)` | Claude Code, auto-approve mode |
 | `(` | Codex, auto-approve mode |
 | `*` | Antigravity, auto-approve mode |
-| `m` | Toggle — hide the popup / return to it |
-| `M` | Agent overlay — this project's live agents + New/Resume per provider, in one menu |
+| `m` | Toggle — hide the popup / return to it. With no popup yet for this project, opens the `M` overlay so you can start one |
+| `M` | Agent overlay — this project's live agents + New/Resume per provider, in one menu (anchored bottom-left) |
 | `s` | Inside a popup: an expanded window tree of your agents (provider icon · status · last activity · the CLI's own title) — pick one to switch to, staying in the popup. Outside: normal work-session chooser (agent-hub sessions filtered out) |
 | `y` | Agent menu — every running agent across every project, same rich rows |
 | `X` | Close menu — close this agent, kill a project's agents, or prune dead ones |

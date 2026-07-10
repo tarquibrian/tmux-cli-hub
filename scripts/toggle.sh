@@ -28,4 +28,6 @@ if tmux has-session -t "$session" 2>/dev/null; then
   exit 0
 fi
 
-tmux display-message "No agent popup for this project"
+# No popup for this project yet: instead of a dead-end message, open the
+# agent overlay so you can start one right here (New/Resume per provider).
+sh "$script_dir/menu-overlay.sh" "$target_client" "$current_session" "$target_pane" "$current_path"
