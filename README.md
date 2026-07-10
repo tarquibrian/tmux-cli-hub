@@ -66,7 +66,7 @@ Default (prefix + key):
 | `(` | Codex, auto-approve mode |
 | `*` | Antigravity, auto-approve mode |
 | `m` | Toggle — hide the popup / return to it |
-| `s` | Session chooser (normal tmux sessions; agent sessions filtered out) |
+| `s` | Inside a popup: switch between agent sessions, staying in the popup. Outside: normal work-session chooser (agent-hub sessions filtered out) |
 | `y` | Agent menu — every running agent across every project, with status |
 | `X` | Close menu — close this agent, kill a project's agents, or prune dead ones |
 

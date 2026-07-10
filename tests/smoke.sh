@@ -92,6 +92,23 @@ rid="$(T list-windows -t agents-dead: -F '#{window_name} #{window_id}' | awk '$1
 sh "$SCRIPTS/close.sh" kill-window "$rid" >/dev/null 2>&1
 chk "kill-window removed one" "0" "$(T list-windows -a -F '#{window_name}' | grep -c '^runagent$')"
 
+echo "== session-menu filters =="
+# The `s` chooser must show cli sessions (agents-*) inside the popup and, in the
+# work view, exclude every agent-hub prefix (agents/acp/vz) so orphan sessions
+# from a disabled/renamed sibling never pollute the list.
+T new-session -d -s workzz -x 80 -y 24 "sleep 300"
+T new-session -d -s acp-beta -x 80 -y 24 "sleep 300"
+T new-session -d -s vz-gamma -x 80 -y 24 "sleep 300"
+prefix="$(. "$SCRIPTS/lib.sh"; tmux_option @cli_hub_session_prefix agents)"
+work_filter="#{?#{m/r:^(${prefix}|acp|vz)-,#{session_name}},0,1}"
+agent_filter="#{m/r:^${prefix}-,#{session_name}}"
+work="$(T list-sessions -f "$work_filter" -F '#{session_name}' 2>/dev/null | tr '\n' ' ')"
+agents="$(T list-sessions -f "$agent_filter" -F '#{session_name}' 2>/dev/null | tr '\n' ' ')"
+case " $work " in *" workzz "*) ok "work filter keeps a real session";; *) no "work filter keeps work" "$work";; esac
+case "$work" in *agents-*|*acp-*|*vz-*) no "work filter drops hub sessions" "$work";; *) ok "work filter drops agents-/acp-/vz-";; esac
+case " $agents " in *" agents-myapp "*) ok "agent filter keeps agents-*";; *) no "agent filter keeps agents-*" "$agents";; esac
+case "$agents" in *workzz*|*acp-*|*vz-*) no "agent filter drops non-agents" "$agents";; *) ok "agent filter drops work/acp/vz";; esac
+
 echo
 echo "RESULT: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

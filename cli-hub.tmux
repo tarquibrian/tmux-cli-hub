@@ -70,6 +70,6 @@ while [ "$slot" -le "$max_slots" ]; do
 done
 
 tmux bind-key m run-shell "sh \"$CURRENT_DIR/scripts/toggle.sh\" \"#{client_name}\" \"#{session_name}\" \"#{pane_current_path}\" \"#{pane_id}\""
-tmux bind-key s run-shell "sh \"$CURRENT_DIR/scripts/session-menu.sh\" \"#{client_name}\" \"#{session_name}\""
+tmux bind-key s run-shell "sh \"$CURRENT_DIR/scripts/session-menu.sh\" \"#{client_name}\" \"#{session_name}\" \"#{pane_id}\""
 tmux bind-key y run-shell "sh \"$CURRENT_DIR/scripts/menu.sh\" \"#{client_name}\" \"#{session_name}\" \"#{pane_current_path}\" \"#{pane_id}\""
 tmux bind-key X run-shell "sh \"$CURRENT_DIR/scripts/close.sh\" menu \"#{client_name}\" \"#{session_name}\" \"#{pane_id}\" \"#{window_id}\" \"#{window_name}\" \"#{pane_current_path}\""
