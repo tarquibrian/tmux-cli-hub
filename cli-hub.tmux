@@ -15,6 +15,7 @@ set_default @cli_hub_hash_length "8"
 set_default @cli_hub_popup_width "80%"
 set_default @cli_hub_popup_height "80%"
 set_default @cli_hub_agent_max_slots "20"
+set_default @cli_hub_active_secs "10"
 
 # Each slot is "name:key:command[:autokey:autocommand]". `key` opens/creates
 # the hub popup for `command`; the optional autokey/autocommand pair binds a
@@ -34,6 +35,7 @@ tmux set-option -gq @cli_hub_dir "$CURRENT_DIR"
 tmux unbind-key -q m
 tmux unbind-key -q s
 tmux unbind-key -q y
+tmux unbind-key -q X
 
 bind_agent_open() {
   key="$1"
@@ -70,3 +72,4 @@ done
 tmux bind-key m run-shell "sh \"$CURRENT_DIR/scripts/toggle.sh\" \"#{client_name}\" \"#{session_name}\" \"#{pane_current_path}\" \"#{pane_id}\""
 tmux bind-key s run-shell "sh \"$CURRENT_DIR/scripts/session-menu.sh\" \"#{client_name}\" \"#{session_name}\""
 tmux bind-key y run-shell "sh \"$CURRENT_DIR/scripts/menu.sh\" \"#{client_name}\" \"#{session_name}\" \"#{pane_current_path}\" \"#{pane_id}\""
+tmux bind-key X run-shell "sh \"$CURRENT_DIR/scripts/close.sh\" menu \"#{client_name}\" \"#{session_name}\" \"#{pane_id}\" \"#{window_id}\" \"#{window_name}\" \"#{pane_current_path}\""

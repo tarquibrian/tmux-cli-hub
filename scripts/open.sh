@@ -44,4 +44,4 @@ if [ "$current_session" = "$session" ]; then
   exit 0
 fi
 
-tmux display-popup -c "$target_client" -d "$project_path" -w "$(popup_width)" -h "$(popup_height)" -E "tmux attach-session -t \"$session\""
+open_popup "$target_client" "$project_path" "$session" "$(project_name "$project_path") · $agent_name"

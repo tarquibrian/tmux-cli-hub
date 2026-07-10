@@ -24,7 +24,7 @@ no daemon, works with anything you can run from a terminal.
 
 | Need | Version / note |
 |------|-----------------|
-| tmux | >= 3.2 (uses `display-popup`) |
+| tmux | >= 3.2 (uses `display-popup`; popup titles need >= 3.3, auto-skipped below that) |
 | sh | POSIX sh (dash, bash, or zsh's sh mode) |
 | `md5sum` or `md5` | for project-path hashing — standard on macOS/Linux |
 
@@ -68,6 +68,7 @@ Default (prefix + key):
 | `m` | Toggle — hide the popup / return to it |
 | `s` | Session chooser (normal tmux sessions; agent sessions filtered out) |
 | `y` | Agent menu — every running agent across every project, with status |
+| `X` | Close menu — close this agent, kill a project's agents, or prune dead ones |
 
 **Security note:** `)`, `(`, and `*` launch the agent with its permission
 prompts disabled (`--dangerously-skip-permissions` /
@@ -118,38 +119,48 @@ slot 5 from loading.
 
 ## How it works
 
-- Each project gets a dedicated tmux session named `<prefix>-<hash>`
-  (`@cli_hub_session_prefix`, default `agents`; the hash is derived from the
-  project's git root, or the current directory if it isn't a git repo).
+- Each project gets a dedicated tmux session named `<prefix>-<project>`
+  (`@cli_hub_session_prefix`, default `agents`; e.g. `agents-myapp`). The
+  project is the git root of the current directory, or the directory itself
+  if it isn't a git repo. If two different projects share a basename, the
+  second gets a short path-hash suffix (`agents-myapp-9f72`) so each project
+  still maps to one stable session.
 - Opening an agent creates a window in that session — or reuses it if
   already running — and shows it via `display-popup`. Closing the popup
   (`m`) doesn't kill the agent; it keeps running, detached, until you reopen
-  or kill it yourself.
+  or close it (`X`).
 - The agent menu (`y`) lists every window across every `<prefix>-*` session
-  with a best-effort status: `dead` (pane exited) and `active` (recent
-  output, last 15s) are reliable for any CLI. `ready` / `needs-input` are
-  opportunistic — they only fire if the CLI puts a matching word in its
-  terminal title, which today is true for Gemini (`Ready`) but not for
-  Claude Code, Codex, opencode, or Antigravity's own CLIs, which don't set a
-  descriptive title. Those just show as `running`/`active`/`dead`. This is a
-  pane-title heuristic, not a real protocol — there's no guarantee a given
-  CLI's title reflects its actual state.
+  with a colored glyph and a best-effort status:
+  - `dead` ✗ / `exited` ⊘ — **high confidence.** The pane process is gone, or
+    the CLI quit and the window dropped to a shell prompt (detected via
+    `pane_current_command`, so it's language-independent).
+  - `needs-input` ▲ — the pane title mentions a permission/approval prompt.
+    Opportunistic: only fires if the CLI sets such a title.
+  - `active` ● — produced output within `@cli_hub_active_secs` (default 10s).
+  - `running` · — alive, nothing else known.
+
+  This is a heuristic, not a protocol: there's no guarantee a CLI's title or
+  output timing reflects its true state. The strong signals (`dead`,
+  `exited`) are reliable for any CLI; the rest are hints. For real,
+  protocol-backed status use [tmux-acp-hub](https://github.com/tarquibrian/tmux-acp-hub).
 
 ## Configuration (tmux options)
 
 | Option | Default | Meaning |
 |--------|---------|---------|
 | `@cli_hub_session_prefix` | `agents` | Prefix for the per-project tmux sessions |
-| `@cli_hub_hash_length` | `8` | Hash length used in the session name |
+| `@cli_hub_hash_length` | `8` | Hash length used for project hashing / collision suffixes |
 | `@cli_hub_popup_width` | `80%` | Popup width |
 | `@cli_hub_popup_height` | `80%` | Popup height |
+| `@cli_hub_active_secs` | `10` | Output within this many seconds marks an agent `active` |
 | `@cli_hub_agent_max_slots` | `20` | How many `@cli_hub_agent_N` slots to scan |
 
 ## Uninstall
 
 Remove the `run` line from `tmux.conf`. Agent sessions aren't killed
-automatically — list them with `tmux ls` and kill what you don't need with
-`tmux kill-session -t <prefix>-<hash>`.
+automatically — use the `X` close menu ("kill this project" / "prune dead"),
+or list them with `tmux ls` and kill what you don't need with
+`tmux kill-session -t <prefix>-<project>`.
 
 ## License
 

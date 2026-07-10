@@ -33,5 +33,6 @@ if is_agent_session "$current_session"; then
   exit 0
 fi
 
+window_name="$(tmux display-message -p -t "$window_id" "#{window_name}" 2>/dev/null)"
 set_popup_parent "$session" "$target_client" "$target_pane"
-tmux display-popup -c "$target_client" -d "$project_path" -w "$(popup_width)" -h "$(popup_height)" -E "tmux attach-session -t \"$session\""
+open_popup "$target_client" "$project_path" "$session" "$(project_name "$project_path") · ${window_name:-agents}"

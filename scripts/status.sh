@@ -4,10 +4,25 @@ script_dir="$(cd "$(dirname "$0")" && pwd)"
 . "$script_dir/lib.sh"
 
 prefix="$(tmux_option @cli_hub_session_prefix agents)"
+active_secs="$(tmux_option @cli_hub_active_secs 10)"
 now="$(date +%s)"
 
-tmux list-windows -a -F "#{session_name}|#{window_id}|#{window_name}|#{pane_id}|#{pane_dead}|#{pane_title}|#{window_activity}|#{@cli_hub_provider}|#{@cli_hub_command}" 2>/dev/null |
-while IFS='|' read -r session window_id window_name pane_id pane_dead pane_title window_activity provider command; do
+# Best-effort, poll-on-demand status. There is no protocol behind a raw CLI, so
+# each signal carries a confidence and the strong ones win:
+#   dead        (high)  pane process gone
+#   exited      (high)  agent CLI quit; the window dropped to a shell prompt
+#   needs-input (med)   pane title mentions a permission / approval prompt
+#   active      (low)   produced output within @cli_hub_active_secs
+#   running     (low)   alive, nothing else known
+is_shell_command() {
+  case "$1" in
+    sh|bash|zsh|fish|dash|ksh|ksh93|mksh|tcsh|csh|ash|-sh|-bash|-zsh) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+tmux list-windows -a -F "#{session_name}|#{window_id}|#{window_name}|#{pane_id}|#{pane_dead}|#{pane_title}|#{window_activity}|#{pane_current_command}|#{@cli_hub_provider}|#{@cli_hub_command}" 2>/dev/null |
+while IFS='|' read -r session window_id window_name pane_id pane_dead pane_title window_activity current_command provider command; do
   case "$session" in
     "$prefix"-*) ;;
     *) continue ;;
@@ -31,21 +46,23 @@ while IFS='|' read -r session window_id window_name pane_id pane_dead pane_title
   if [ "$pane_dead" = "1" ]; then
     status="dead"
     confidence="high"
-  elif printf "%s" "$pane_title" | grep -Eiq "ready|idle"; then
-    status="ready"
-    confidence="medium"
-  elif printf "%s" "$pane_title" | grep -Eiq "permission|approve|approval|confirm"; then
+  elif is_shell_command "$current_command"; then
+    # The launched CLI exited; the window is now sitting at a shell prompt.
+    status="exited"
+    confidence="high"
+  elif printf "%s" "$pane_title" | grep -Eiq "permission|approve|approval|confirm|allow|trust|\(y/n\)"; then
     status="needs-input"
     confidence="medium"
-  elif [ -n "$window_activity" ] && [ "$((now - window_activity))" -le 15 ] 2>/dev/null; then
+  elif [ -n "$window_activity" ] && [ "$((now - window_activity))" -le "$active_secs" ] 2>/dev/null; then
     status="active"
-    confidence="medium"
+    confidence="low"
   fi
 
   tmux set-window-option -t "$window_id" -q @cli_hub_status "$status"
   tmux set-window-option -t "$window_id" -q @cli_hub_status_confidence "$confidence"
   tmux set-window-option -t "$window_id" -q @cli_hub_title "$pane_title"
   tmux set-window-option -t "$window_id" -q @cli_hub_pane "$pane_id"
+  tmux set-window-option -t "$window_id" -q @cli_hub_command_current "$current_command"
   tmux set-window-option -t "$window_id" -q @cli_hub_last_activity "$window_activity"
   tmux set-window-option -t "$window_id" -q @cli_hub_updated_at "$now"
 done

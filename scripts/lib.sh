@@ -23,9 +23,32 @@ path_hash() {
   fi
 }
 
+# tmux session names cannot contain "." or ":" and choke on spaces; fold every
+# other character to "-" and squeeze/trim so a project basename becomes a safe,
+# readable session component.
+sanitize_component() {
+  printf "%s" "$1" | tr -c 'A-Za-z0-9_-' '-' | sed -e 's/-\{2,\}/-/g' -e 's/^-//' -e 's/-$//'
+}
+
+# Readable session name: agents-<project> (e.g. agents-tmux-cli-hub). The short
+# path hash is appended only when a DIFFERENT project already owns the bare
+# name, so each project still resolves to a single stable session.
 agent_session_name() {
   prefix="$(tmux_option @cli_hub_session_prefix agents)"
-  printf "%s-%s" "$prefix" "$(path_hash "$1")"
+  base="$(sanitize_component "$(project_name "$1")")"
+  [ -n "$base" ] || base="project"
+
+  candidate="$prefix-$base"
+  if tmux has-session -t "=$candidate" 2>/dev/null; then
+    # show-option does not honour the "=" exact-match prefix; the exact session
+    # is known to exist here, so a plain target resolves to it.
+    owner_path="$(tmux show-option -t "$candidate" -qv @cli_hub_project_path)"
+    if [ -n "$owner_path" ] && [ "$owner_path" != "$1" ]; then
+      candidate="$prefix-$base-$(path_hash "$1" | cut -c1-4)"
+    fi
+  fi
+
+  printf "%s" "$candidate"
 }
 
 is_agent_session() {
@@ -122,4 +145,30 @@ popup_width() {
 
 popup_height() {
   tmux_option @cli_hub_popup_height "80%"
+}
+
+# display-popup grew a -T title flag in tmux 3.3; feature-detect so the plugin
+# keeps working on 3.2 (the display-popup floor) without the title.
+tmux_supports_popup_title() {
+  version="$(tmux -V | sed -E 's/[^0-9.]//g')"
+  major="${version%%.*}"
+  rest="${version#*.}"
+  minor="${rest%%.*}"
+  [ -n "$major" ] || return 1
+  [ "$major" -gt 3 ] 2>/dev/null && return 0
+  [ "$major" -eq 3 ] 2>/dev/null && [ "${minor:-0}" -ge 3 ] 2>/dev/null && return 0
+  return 1
+}
+
+# Open the project's agent session in a popup, titled "<project> · <label>"
+# when the running tmux supports popup titles.
+# $1 client  $2 dir  $3 session  $4 title
+open_popup() {
+  if tmux_supports_popup_title; then
+    tmux display-popup -c "$1" -d "$2" -w "$(popup_width)" -h "$(popup_height)" \
+      -T " $4 " -E "tmux attach-session -t \"$3\""
+  else
+    tmux display-popup -c "$1" -d "$2" -w "$(popup_width)" -h "$(popup_height)" \
+      -E "tmux attach-session -t \"$3\""
+  fi
 }
