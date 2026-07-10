@@ -155,6 +155,19 @@ has "empty project still offers New" "＋ claude"
 sh "$SCRIPTS/toggle.sh" dummyclient work /tmp/nowhere/emptyproj %0 >/dev/null 2>&1
 has "toggle w/o popup opens overlay"  "＋ claude"
 
+# Regression: the dimmed "-" section headers require the "--" flag terminator,
+# or display-menu reads them as flags ("unknown flag -L"). Restore the
+# pass-through shim and point the real display-menu at a bogus client — a parse
+# failure says "unknown flag"; a healthy menu only fails to find the client.
+cat > "$SHIM/tmux" <<EOF
+#!/bin/sh
+exec "$REAL_TMUX" -L "$SOCK" "\$@"
+EOF
+chmod +x "$SHIM/tmux"
+sh "$SCRIPTS/menu-overlay.sh" nopeclient agents-myapp %0 /tmp/proj/myapp 2>"$TMP/menuerr" >/dev/null
+if grep -q "unknown flag" "$TMP/menuerr"; then no "overlay parses (no unknown-flag)" "$(cat "$TMP/menuerr")"; else ok "overlay parses (headers need --)"; fi
+if grep -q "can't find client" "$TMP/menuerr"; then ok "overlay reached client check"; else no "overlay reached client check" "$(cat "$TMP/menuerr")"; fi
+
 echo "== switcher rich format =="
 fmt="$(. "$SCRIPTS/lib.sh"; agent_choose_format)"
 o="$(printf '%s' "$fmt" | tr -cd '{' | wc -c | tr -d ' ')"

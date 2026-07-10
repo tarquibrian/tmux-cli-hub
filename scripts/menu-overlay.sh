@@ -37,7 +37,10 @@ if [ "${live_count:-0}" -gt 0 ]; then
 else
   title=" cli-hub · $project_label — no agents yet, start one: "
 fi
-set -- -c "$current_client" -x 0 -y S -T "$title"
+# The trailing "--" terminates flag parsing: menu item names starting with "-"
+# (the dimmed section headers) would otherwise be read as unknown flags
+# (e.g. "-Live agents" -> "unknown flag -L") and display-menu would fail.
+set -- -c "$current_client" -x 0 -y S -T "$title" --
 
 # Sections are labelled with disabled items (a leading "-" makes a menu item a
 # dimmed, unselectable header) and split by "" separators. Redundant words are
