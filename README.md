@@ -126,10 +126,14 @@ slot 5 from loading.
   (`m`) doesn't kill the agent; it keeps running, detached, until you reopen
   or kill it yourself.
 - The agent menu (`y`) lists every window across every `<prefix>-*` session
-  with a best-effort status (`running` / `active` / `needs-input` / `dead`),
-  derived from pane activity and the pane title. CLIs that don't set a
-  descriptive terminal title will just show as `running`/`active` — status
-  detection is a heuristic, not a protocol.
+  with a best-effort status: `dead` (pane exited) and `active` (recent
+  output, last 15s) are reliable for any CLI. `ready` / `needs-input` are
+  opportunistic — they only fire if the CLI puts a matching word in its
+  terminal title, which today is true for Gemini (`Ready`) but not for
+  Claude Code, Codex, opencode, or Antigravity's own CLIs, which don't set a
+  descriptive title. Those just show as `running`/`active`/`dead`. This is a
+  pane-title heuristic, not a real protocol — there's no guarantee a given
+  CLI's title reflects its actual state.
 
 ## Configuration (tmux options)
 
