@@ -14,7 +14,7 @@ session, shown as a popup.
   project you're currently in.
 
 This is the lite counterpart to
-[tmux-vanzi-hub](https://github.com/tarquibrian/tmux-vanzi-hub): vanzi-hub
+[tmux-acp-hub](https://github.com/tarquibrian/tmux-acp-hub): acp-hub
 runs agents through the Agent Client Protocol behind a persistent Node
 daemon (rich rendering, true status, saved transcripts). tmux-cli-hub instead
 just runs the agent's own CLI directly inside a tmux session — no protocol,
