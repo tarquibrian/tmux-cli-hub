@@ -124,12 +124,15 @@ exec "$REAL_TMUX" -L "$SOCK" "\$@"
 EOF
 chmod +x "$SHIM/tmux"
 sh "$SCRIPTS/menu-overlay.sh" dummyclient agents-myapp %0 /tmp/proj/myapp >/dev/null 2>&1
-has() { if grep -Fq "$2" "$DUMP" 2>/dev/null; then ok "$1"; else no "$1" "missing '$2'"; fi; }
+has() { if grep -Fq -e "$2" -- "$DUMP" 2>/dev/null; then ok "$1"; else no "$1" "missing '$2'"; fi; }
 has "title shows project"     " cli-hub · myapp "
+has "live agents header"      "-Live agents"
 has "live agent row (claude)" "claude  ["
-has "New per provider (codex)" "＋ New codex"
-has "Resume per provider (claude)" "⟲ Resume claude"
-has "Resume per provider (codex)"  "⟲ Resume codex"
+has "start-new header"        "-Start new"
+has "New per provider (codex)" "＋ codex"
+has "resume header"           "-Resume"
+has "Resume per provider (claude)" "⟲ claude"
+has "Resume per provider (codex)"  "⟲ codex"
 has "all-agents entry"        "All agents (every project)…"
 has "cancel entry"            "Cancel"
 # resume launcher carries the provider's native resume flag + an ASCII name
@@ -143,11 +146,11 @@ hasx "menu anchored at status line"  "S"
 # Empty project: the title carries the "no agents yet" hint.
 sh "$SCRIPTS/menu-overlay.sh" dummyclient work %0 /tmp/nowhere/emptyproj >/dev/null 2>&1
 has "empty project title hint"       "no agents yet"
-has "empty project still offers New" "＋ New claude"
+has "empty project still offers New" "＋ claude"
 
 # prefix+m with no popup routes to the overlay instead of a dead-end message.
 sh "$SCRIPTS/toggle.sh" dummyclient work /tmp/nowhere/emptyproj %0 >/dev/null 2>&1
-has "toggle w/o popup opens overlay"  "＋ New claude"
+has "toggle w/o popup opens overlay"  "＋ claude"
 
 echo "== switcher rich format =="
 fmt="$(. "$SCRIPTS/lib.sh"; agent_choose_format)"
