@@ -40,8 +40,6 @@ set_default @cli_hub_resume_antigravity "agy --continue"
 set_default @cli_hub_resume_opencode "opencode --continue"
 set_default @cli_hub_resume_gemini "gemini --resume latest"
 
-tmux set-option -gq @cli_hub_dir "$CURRENT_DIR"
-
 tmux unbind-key -q m
 tmux unbind-key -q s
 tmux unbind-key -q y

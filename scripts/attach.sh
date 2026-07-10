@@ -23,7 +23,6 @@ project_path="$(tmux show-option -t "$session" -qv @cli_hub_project_path)"
 [ -n "$project_path" ] || project_path="$HOME"
 
 tmux select-window -t "$window_id"
-tmux set-option -gq @cli_hub_last "$window_id"
 
 if is_agent_session "$current_session"; then
   parent_client="$(tmux show-option -t "$current_session" -qv @cli_hub_parent_client)"
@@ -35,4 +34,4 @@ fi
 
 window_name="$(tmux display-message -p -t "$window_id" "#{window_name}" 2>/dev/null)"
 set_popup_parent "$session" "$target_client" "$target_pane"
-open_popup "$target_client" "$project_path" "$session" "$(project_name "$project_path") · ${window_name:-agents}"
+open_popup "$target_client" "$project_path" "$session" "$(project_name "$project_path")${window_name:+ · $window_name}"

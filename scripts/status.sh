@@ -40,29 +40,21 @@ while IFS='|' read -r session window_id window_name pane_id pane_dead pane_title
     tmux set-window-option -t "$window_id" -q @cli_hub_mode "$mode"
   fi
 
+  # Strong signals (dead / exited) are checked first so they win over the weak
+  # activity/title hints.
   status="running"
-  confidence="low"
 
   if [ "$pane_dead" = "1" ]; then
     status="dead"
-    confidence="high"
   elif is_shell_command "$current_command"; then
     # The launched CLI exited; the window is now sitting at a shell prompt.
     status="exited"
-    confidence="high"
   elif printf "%s" "$pane_title" | grep -Eiq "permission|approve|approval|confirm|allow|trust|\(y/n\)"; then
     status="needs-input"
-    confidence="medium"
   elif [ -n "$window_activity" ] && [ "$((now - window_activity))" -le "$active_secs" ] 2>/dev/null; then
     status="active"
-    confidence="low"
   fi
 
   tmux set-window-option -t "$window_id" -q @cli_hub_status "$status"
-  tmux set-window-option -t "$window_id" -q @cli_hub_status_confidence "$confidence"
   tmux set-window-option -t "$window_id" -q @cli_hub_title "$pane_title"
-  tmux set-window-option -t "$window_id" -q @cli_hub_pane "$pane_id"
-  tmux set-window-option -t "$window_id" -q @cli_hub_command_current "$current_command"
-  tmux set-window-option -t "$window_id" -q @cli_hub_last_activity "$window_activity"
-  tmux set-window-option -t "$window_id" -q @cli_hub_updated_at "$now"
 done

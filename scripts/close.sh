@@ -40,13 +40,13 @@ case "$action" in
     sh "$script_dir/status.sh"
 
     filter="#{m/r:^${prefix}-,#{session_name}}"
-    format="#{@cli_hub_project_name} · #{window_name}  [#{@cli_hub_status}]"
+    format="$(agent_choose_format)"
     template="run-shell \"sh '$script_dir/close.sh' kill-window '%%'\""
 
     if [ -n "$pane" ] && pane_exists "$pane"; then
-      tmux choose-tree -Zw -t "$pane" -f "$filter" -F "$format" "$template"
+      tmux choose-tree -Zw -O time -t "$pane" -f "$filter" -F "$format" "$template"
     else
-      tmux choose-tree -Zw -f "$filter" -F "$format" "$template"
+      tmux choose-tree -Zw -O time -f "$filter" -F "$format" "$template"
     fi
     ;;
 

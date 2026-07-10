@@ -108,15 +108,10 @@ set_session_metadata() {
   session="$1"
   project_path="$2"
   project_hash="$3"
-  now="$(date +%s)"
 
   tmux set-option -t "$session" -q @cli_hub_project_path "$project_path"
   tmux set-option -t "$session" -q @cli_hub_project_name "$(project_name "$project_path")"
   tmux set-option -t "$session" -q @cli_hub_project_hash "$project_hash"
-  tmux set-option -t "$session" -q @cli_hub_updated_at "$now"
-
-  [ -n "$(tmux show-option -t "$session" -qv @cli_hub_created_at)" ] || \
-    tmux set-option -t "$session" -q @cli_hub_created_at "$now"
 }
 
 set_window_metadata() {
@@ -125,18 +120,12 @@ set_window_metadata() {
   agent_command="$3"
   provider="$(agent_provider "$agent_name" "$agent_command")"
   mode="$(agent_mode "$agent_name")"
-  now="$(date +%s)"
 
   tmux set-window-option -t "$target" -q @cli_hub_agent_name "$agent_name"
   tmux set-window-option -t "$target" -q @cli_hub_command "$agent_command"
   tmux set-window-option -t "$target" -q @cli_hub_provider "$provider"
   tmux set-window-option -t "$target" -q @cli_hub_mode "$mode"
   tmux set-window-option -t "$target" -q @cli_hub_status "running"
-  tmux set-window-option -t "$target" -q @cli_hub_status_confidence "low"
-  tmux set-window-option -t "$target" -q @cli_hub_updated_at "$now"
-
-  [ -n "$(tmux show-options -w -t "$target" -qv @cli_hub_created_at)" ] || \
-    tmux set-window-option -t "$target" -q @cli_hub_created_at "$now"
 }
 
 status_glyph_for() {

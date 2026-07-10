@@ -37,7 +37,6 @@ set_window_metadata "$session:$agent_name" "$agent_name" "$agent_command"
 
 [ "$launched_from_agent" = "true" ] || set_popup_parent "$session" "$target_client" "$target_pane"
 tmux select-window -t "$session:$agent_name"
-tmux set-option -gq @cli_hub_last "$session:$agent_name"
 
 if [ "$current_session" = "$session" ]; then
   tmux switch-client -c "$target_client" -t "$session"

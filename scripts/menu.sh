@@ -25,7 +25,7 @@ format="$(agent_choose_format)"
 template="run-shell 'sh \"$script_dir/attach.sh\" \"$current_client\" \"$current_session\" \"%%\" \"$target_pane\"'"
 
 if [ -n "$target_pane" ] && pane_exists "$target_pane"; then
-  tmux choose-tree -Zw -t "$target_pane" -f "$filter" -F "$format" "$template"
+  tmux choose-tree -Zw -O time -t "$target_pane" -f "$filter" -F "$format" "$template"
 else
-  tmux choose-tree -Zw -f "$filter" -F "$format" "$template"
+  tmux choose-tree -Zw -O time -f "$filter" -F "$format" "$template"
 fi
