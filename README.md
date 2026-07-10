@@ -66,6 +66,7 @@ Default (prefix + key):
 | `(` | Codex, auto-approve mode |
 | `*` | Antigravity, auto-approve mode |
 | `m` | Toggle — hide the popup / return to it |
+| `M` | Agent overlay — this project's live agents + New/Resume per provider, in one menu |
 | `s` | Inside a popup: switch between agent sessions, staying in the popup. Outside: normal work-session chooser (agent-hub sessions filtered out) |
 | `y` | Agent menu — every running agent across every project, with status |
 | `X` | Close menu — close this agent, kill a project's agents, or prune dead ones |
@@ -144,6 +145,36 @@ slot 5 from loading.
   `exited`) are reliable for any CLI; the rest are hints. For real,
   protocol-backed status use [tmux-acp-hub](https://github.com/tarquibrian/tmux-acp-hub).
 
+## The agent overlay (`prefix + M`) and history
+
+`M` opens one native menu for the current project:
+
+- **Live agents** — the running agents in this project; pick one to jump to it.
+- **New `<provider>`** — launch a fresh agent, same as its open key.
+- **Resume `<provider>`** — launch the CLI in its own resume mode.
+
+cli-hub keeps **no history of its own** — it's an external launcher, and each
+CLI already stores and resumes its own past sessions. "Resume" just runs the
+provider's native resume command (`@cli_hub_resume_<provider>`) in a
+`<name>-resume` window, and the CLI shows its own picker. So a unified,
+cross-provider transcript list (like acp-hub's `prefix + M`) isn't possible
+here — that needs a daemon and a protocol. What cli-hub gives you is one place
+to reach every provider's live agents and native resume.
+
+Built-in resume defaults (override or set to `""` to hide the entry):
+
+```tmux
+set -g @cli_hub_resume_claude      "claude --resume"       # session picker
+set -g @cli_hub_resume_codex       "codex resume"          # session picker
+set -g @cli_hub_resume_antigravity "agy --continue"        # most recent
+set -g @cli_hub_resume_opencode    "opencode --continue"   # last session
+set -g @cli_hub_resume_gemini      "gemini --resume latest"
+```
+
+The provider name is derived from the agent (`claude`, `codex`, `antigravity`,
+`opencode`, `gemini`); a custom agent with no matching `@cli_hub_resume_*`
+simply gets no Resume entry.
+
 ## Configuration (tmux options)
 
 | Option | Default | Meaning |
@@ -154,6 +185,7 @@ slot 5 from loading.
 | `@cli_hub_popup_height` | `80%` | Popup height |
 | `@cli_hub_active_secs` | `10` | Output within this many seconds marks an agent `active` |
 | `@cli_hub_agent_max_slots` | `20` | How many `@cli_hub_agent_N` slots to scan |
+| `@cli_hub_resume_<provider>` | per provider | Resume command used by the `M` overlay (`""` hides the entry) |
 
 ## Uninstall
 

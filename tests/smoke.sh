@@ -109,6 +109,33 @@ case "$work" in *agents-*|*acp-*|*vz-*) no "work filter drops hub sessions" "$wo
 case " $agents " in *" agents-myapp "*) ok "agent filter keeps agents-*";; *) no "agent filter keeps agents-*" "$agents";; esac
 case "$agents" in *workzz*|*acp-*|*vz-*) no "agent filter drops non-agents" "$agents";; *) ok "agent filter drops work/acp/vz";; esac
 
+echo "== prefix+M overlay (menu construction) =="
+# Intercept display-menu: dump its args instead of rendering (needs no client).
+DUMP="$TMP/menu.dump"
+cat > "$SHIM/tmux" <<EOF
+#!/bin/sh
+if [ "\$1" = "display-menu" ]; then
+  shift
+  : > "$DUMP"
+  for a in "\$@"; do printf '%s\n' "\$a" >> "$DUMP"; done
+  exit 0
+fi
+exec "$REAL_TMUX" -L "$SOCK" "\$@"
+EOF
+chmod +x "$SHIM/tmux"
+sh "$SCRIPTS/menu-overlay.sh" dummyclient agents-myapp %0 /tmp/proj/myapp >/dev/null 2>&1
+has() { if grep -Fq "$2" "$DUMP" 2>/dev/null; then ok "$1"; else no "$1" "missing '$2'"; fi; }
+has "title shows project"     " cli-hub · myapp "
+has "live agent row (claude)" "claude  ["
+has "New per provider (codex)" "＋ New codex"
+has "Resume per provider (claude)" "⟲ Resume claude"
+has "Resume per provider (codex)"  "⟲ Resume codex"
+has "all-agents entry"        "All agents (every project)…"
+has "cancel entry"            "Cancel"
+# resume launcher carries the provider's native resume flag + an ASCII name
+has "resume cmd carries --resume"   "claude --resume"
+has "resume window name is ASCII"   "'claude-resume'"
+
 echo
 echo "RESULT: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

@@ -139,6 +139,16 @@ set_window_metadata() {
     tmux set-window-option -t "$target" -q @cli_hub_created_at "$now"
 }
 
+status_glyph_for() {
+  case "$1" in
+    dead)        printf '%s' '✗' ;;
+    exited)      printf '%s' '⊘' ;;
+    needs-input) printf '%s' '▲' ;;
+    active)      printf '%s' '●' ;;
+    *)           printf '%s' '·' ;;
+  esac
+}
+
 popup_width() {
   tmux_option @cli_hub_popup_width "80%"
 }

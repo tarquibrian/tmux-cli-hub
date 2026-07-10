@@ -30,12 +30,23 @@ set_default @cli_hub_agent_3 "antigravity:8:agy:*:agy --dangerously-skip-permiss
 set_default @cli_hub_agent_4 "opencode:o:opencode"
 set_default @cli_hub_agent_5 "gemini:g:gemini"
 
+# Resume commands per provider, used by the "Resume" entries in the prefix + M
+# overlay. cli-hub keeps no history of its own — each launches the CLI in its
+# own resume mode so the agent shows its own past-session picker. Keyed by the
+# provider name (see agent_provider); override or set to "" to hide the entry.
+set_default @cli_hub_resume_claude "claude --resume"
+set_default @cli_hub_resume_codex "codex resume"
+set_default @cli_hub_resume_antigravity "agy --continue"
+set_default @cli_hub_resume_opencode "opencode --continue"
+set_default @cli_hub_resume_gemini "gemini --resume latest"
+
 tmux set-option -gq @cli_hub_dir "$CURRENT_DIR"
 
 tmux unbind-key -q m
 tmux unbind-key -q s
 tmux unbind-key -q y
 tmux unbind-key -q X
+tmux unbind-key -q M
 
 bind_agent_open() {
   key="$1"
@@ -73,3 +84,4 @@ tmux bind-key m run-shell "sh \"$CURRENT_DIR/scripts/toggle.sh\" \"#{client_name
 tmux bind-key s run-shell "sh \"$CURRENT_DIR/scripts/session-menu.sh\" \"#{client_name}\" \"#{session_name}\" \"#{pane_id}\""
 tmux bind-key y run-shell "sh \"$CURRENT_DIR/scripts/menu.sh\" \"#{client_name}\" \"#{session_name}\" \"#{pane_current_path}\" \"#{pane_id}\""
 tmux bind-key X run-shell "sh \"$CURRENT_DIR/scripts/close.sh\" menu \"#{client_name}\" \"#{session_name}\" \"#{pane_id}\" \"#{window_id}\" \"#{window_name}\" \"#{pane_current_path}\""
+tmux bind-key M run-shell "sh \"$CURRENT_DIR/scripts/menu-overlay.sh\" \"#{client_name}\" \"#{session_name}\" \"#{pane_id}\" \"#{pane_current_path}\""
