@@ -136,6 +136,19 @@ has "cancel entry"            "Cancel"
 has "resume cmd carries --resume"   "claude --resume"
 has "resume window name is ASCII"   "'claude-resume'"
 
+echo "== switcher rich format =="
+fmt="$(. "$SCRIPTS/lib.sh"; agent_choose_format)"
+o="$(printf '%s' "$fmt" | tr -cd '{' | wc -c | tr -d ' ')"
+c="$(printf '%s' "$fmt" | tr -cd '}' | wc -c | tr -d ' ')"
+chk "format braces balanced" "$o" "$c"
+T set-window-option -t 'agents-myapp:claude' -q @cli_hub_provider claude
+T set-window-option -t 'agents-myapp:claude' -q @cli_hub_status active
+T select-pane -t 'agents-myapp:claude' -T 'x claude title' 2>/dev/null
+render="$(T list-windows -t agents-myapp -F "$fmt" 2>/dev/null)"
+case "$render" in *❋*)      ok "claude icon (❋) renders";;      *) no "claude icon" "$render";; esac
+case "$render" in *active*)  ok "status word renders";;          *) no "status word" "$render";; esac
+case "$render" in *"claude title"*) ok "pane title shown";;      *) no "pane title" "$render";; esac
+
 echo
 echo "RESULT: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

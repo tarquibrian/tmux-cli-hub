@@ -21,10 +21,15 @@ if is_agent_session "$current_session"; then
     exit 0
   fi
 
+  # Refresh status so the rows carry a current glyph, then show an expanded
+  # window tree (grouped by project) with the rich format — most recent first.
+  sh "$script_dir/status.sh"
+  format="$(agent_choose_format)"
+
   if [ -n "$current_pane" ] && pane_exists "$current_pane"; then
-    tmux choose-tree -Zs -t "$current_pane" -f "$agent_filter" "switch-client -c \"$current_client\" -t '%%'"
+    tmux choose-tree -Zw -O time -t "$current_pane" -f "$agent_filter" -F "$format" "switch-client -c \"$current_client\" -t '%%'"
   else
-    tmux choose-tree -Zs -f "$agent_filter" "switch-client -c \"$current_client\" -t '%%'"
+    tmux choose-tree -Zw -O time -f "$agent_filter" -F "$format" "switch-client -c \"$current_client\" -t '%%'"
   fi
   exit 0
 fi

@@ -67,8 +67,8 @@ Default (prefix + key):
 | `*` | Antigravity, auto-approve mode |
 | `m` | Toggle — hide the popup / return to it |
 | `M` | Agent overlay — this project's live agents + New/Resume per provider, in one menu |
-| `s` | Inside a popup: switch between agent sessions, staying in the popup. Outside: normal work-session chooser (agent-hub sessions filtered out) |
-| `y` | Agent menu — every running agent across every project, with status |
+| `s` | Inside a popup: an expanded window tree of your agents (provider icon · status · last activity · the CLI's own title) — pick one to switch to, staying in the popup. Outside: normal work-session chooser (agent-hub sessions filtered out) |
+| `y` | Agent menu — every running agent across every project, same rich rows |
 | `X` | Close menu — close this agent, kill a project's agents, or prune dead ones |
 
 **Security note:** `)`, `(`, and `*` launch the agent with its permission

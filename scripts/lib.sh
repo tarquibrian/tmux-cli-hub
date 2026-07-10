@@ -149,6 +149,26 @@ status_glyph_for() {
   esac
 }
 
+# choose-tree -F format for the agent switcher (`s`) and agent menu (`y`),
+# expanded window mode. Columns: provider icon · agent name · status · [yolo] ·
+# last activity · the CLI's own pane title. Colors are emitted as #[fg=...]
+# directives *returned* by the conditionals (tmux can't put a #{?} inside a
+# style spec). Session parents render as "▣ <project>  <path>".
+agent_choose_format() {
+  icon='#{?#{==:#{@cli_hub_provider},claude},❋,#{?#{==:#{@cli_hub_provider},codex},⬡,#{?#{==:#{@cli_hub_provider},gemini},✦,#{?#{==:#{@cli_hub_provider},opencode},◉,#{?#{==:#{@cli_hub_provider},antigravity},✱,◆}}}}}'
+  istyle='#{?#{==:#{@cli_hub_provider},claude},#[fg=colour173],#{?#{==:#{@cli_hub_provider},codex},#[fg=colour39],#{?#{==:#{@cli_hub_provider},gemini},#[fg=colour33],#{?#{==:#{@cli_hub_provider},opencode},#[fg=colour170],#{?#{==:#{@cli_hub_provider},antigravity},#[fg=colour208],#[fg=colour244]}}}}}'
+  sglyph='#{?#{==:#{@cli_hub_status},dead},✗,#{?#{==:#{@cli_hub_status},exited},⊘,#{?#{==:#{@cli_hub_status},needs-input},▲,#{?#{==:#{@cli_hub_status},active},●,·}}}}'
+  sstyle='#{?#{==:#{@cli_hub_status},dead},#[fg=red],#{?#{==:#{@cli_hub_status},needs-input},#[fg=yellow],#{?#{==:#{@cli_hub_status},active},#[fg=green],#[fg=colour244]}}}'
+  yolo='#{?#{==:#{@cli_hub_mode},auto},#[fg=yellow]⚡ #[default],}'
+  name='#{?#{@cli_hub_agent_name},#{@cli_hub_agent_name},#{window_name}}'
+  info='#{=/38/…:#{?#{pane_title},#{pane_title},#{@cli_hub_title}}}'
+
+  wline="${istyle}${icon}#[default] #[bold]#{p14:${name}}#[default] ${sstyle}${sglyph} #{p10:#{@cli_hub_status}}#[default] ${yolo}#[fg=colour244]#{t/f/%R:window_activity}  #[fg=colour244]${info}#[default]"
+  sline='#[bold]▣ #{?#{@cli_hub_project_name},#{@cli_hub_project_name},#{session_name}}#[default]  #[fg=colour244]#{@cli_hub_project_path}#[default]'
+
+  printf '%s' "#{?window_format,${wline},${sline}}"
+}
+
 popup_width() {
   tmux_option @cli_hub_popup_width "80%"
 }
