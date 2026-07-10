@@ -37,7 +37,9 @@ export PATH="$SHIM:$PATH"
 T() { "$REAL_TMUX" -L "$SOCK" "$@"; }
 
 T kill-server 2>/dev/null
-T new-session -d -s work -x 200 -y 50
+# Start the test server with -f /dev/null so it never loads the user's real
+# tmux.conf — the smoke must be hermetic (its own defaults, not your live ones).
+"$REAL_TMUX" -f /dev/null -L "$SOCK" new-session -d -s work -x 200 -y 50
 sh "$PLUGIN/cli-hub.tmux"
 
 echo "== syntax =="
@@ -99,13 +101,14 @@ echo "== session-menu filters =="
 T new-session -d -s workzz -x 80 -y 24 "sleep 300"
 T new-session -d -s acp-beta -x 80 -y 24 "sleep 300"
 T new-session -d -s vz-gamma -x 80 -y 24 "sleep 300"
+T new-session -d -s cli-delta -x 80 -y 24 "sleep 300"
 prefix="$(. "$SCRIPTS/lib.sh"; tmux_option @cli_hub_session_prefix agents)"
-work_filter="#{?#{m/r:^(${prefix}|acp|vz)-,#{session_name}},0,1}"
+work_filter="#{?#{m/r:^(${prefix}|agents|cli|acp|vz)-,#{session_name}},0,1}"
 agent_filter="#{m/r:^${prefix}-,#{session_name}}"
 work="$(T list-sessions -f "$work_filter" -F '#{session_name}' 2>/dev/null | tr '\n' ' ')"
 agents="$(T list-sessions -f "$agent_filter" -F '#{session_name}' 2>/dev/null | tr '\n' ' ')"
 case " $work " in *" workzz "*) ok "work filter keeps a real session";; *) no "work filter keeps work" "$work";; esac
-case "$work" in *agents-*|*acp-*|*vz-*) no "work filter drops hub sessions" "$work";; *) ok "work filter drops agents-/acp-/vz-";; esac
+case "$work" in *acp-*|*vz-*|*cli-*|*agents-*) no "work filter drops hub sessions" "$work";; *) ok "work filter drops agents-/cli-/acp-/vz-";; esac
 case " $agents " in *" agents-myapp "*) ok "agent filter keeps agents-*";; *) no "agent filter keeps agents-*" "$agents";; esac
 case "$agents" in *workzz*|*acp-*|*vz-*) no "agent filter drops non-agents" "$agents";; *) ok "agent filter drops work/acp/vz";; esac
 

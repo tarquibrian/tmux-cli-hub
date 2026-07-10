@@ -35,7 +35,8 @@ if is_agent_session "$current_session"; then
 fi
 
 # Outside the popup: a normal work-session chooser. Exclude every agent-hub
-# session — this plugin's `agents-*`, plus a sibling/legacy acp-hub (`acp-*`)
-# and the pre-rename `vz-*` — so orphan hub sessions never pollute the list.
-work_filter="#{?#{m/r:^(${prefix}|acp|vz)-,#{session_name}},0,1}"
+# session — this plugin's own `$prefix-`, the default `agents-` and `cli-`, a
+# sibling acp-hub (`acp-*`), and the pre-rename `vz-*` — so orphan hub sessions
+# (from a prefix change or a disabled/renamed sibling) never pollute the list.
+work_filter="#{?#{m/r:^(${prefix}|agents|cli|acp|vz)-,#{session_name}},0,1}"
 tmux choose-tree -Zs -f "$work_filter"
