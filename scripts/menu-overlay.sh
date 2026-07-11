@@ -28,7 +28,24 @@ project_label="$(project_name "$project_path")"
 # Refresh status so the live rows carry an up-to-date glyph.
 sh "$script_dir/status.sh"
 
-live_count="$(tmux list-windows -t "$project_session" -F x 2>/dev/null | wc -l | tr -d ' ')"
+# Exact-match guard: list-windows prefix-matches session names, so without it a
+# missing "cli-web" would count another project's "cli-web-9f72" windows.
+if tmux has-session -t "=$project_session" 2>/dev/null; then
+  live_count="$(tmux list-windows -t "$project_session" -F x 2>/dev/null | wc -l | tr -d ' ')"
+else
+  live_count=0
+fi
+
+# Values embedded in menu item commands, quoted so paths or agent commands
+# with spaces/quotes can't break the generated shell command.
+q_open="$(shell_quote "$script_dir/open.sh")"
+q_attach="$(shell_quote "$script_dir/attach.sh")"
+q_menu="$(shell_quote "$script_dir/menu.sh")"
+q_client="$(shell_quote "$current_client")"
+q_session="$(shell_quote "$current_session")"
+q_pane="$(shell_quote "$current_pane")"
+q_path="$(shell_quote "$project_path")"
+q_cur_path="$(shell_quote "$current_path")"
 
 # Title doubles as the "no agents yet" hint when the project has none. The menu
 # is anchored bottom-left (-x 0 -y S) instead of the default centre.
@@ -53,7 +70,7 @@ if [ "${live_count:-0}" -gt 0 ]; then
   while IFS='|' read -r wid wname wstatus; do
     [ -n "$wid" ] || continue
     label="$(status_glyph_for "$wstatus") $wname  [$wstatus]"
-    cmd="run-shell \"sh '$script_dir/attach.sh' '$current_client' '$current_session' '$wid' '$current_pane'\""
+    cmd="run-shell \"sh $q_attach $q_client $q_session '$wid' $q_pane\""
     set -- "$@" "$label" "" "$cmd"
   done <<EOF
 $(tmux list-windows -t "$project_session" -F '#{window_id}|#{window_name}|#{@cli_hub_status}' 2>/dev/null)
@@ -72,7 +89,7 @@ while [ "$slot" -le "$max_slots" ]; do
   key="$(printf '%s' "$entry" | cut -d: -f2)"
   command="$(printf '%s' "$entry" | cut -d: -f3)"
   [ -n "$name" ] && [ -n "$command" ] || continue
-  new_cmd="run-shell \"sh '$script_dir/open.sh' '$name' '$command' '$project_path' '$current_session' '$current_client' '$current_pane'\""
+  new_cmd="run-shell \"sh $q_open $(shell_quote "$name") $(shell_quote "$command") $q_path $q_session $q_client $q_pane\""
   set -- "$@" "＋ $name" "$key" "$new_cmd"
 done
 
@@ -94,12 +111,12 @@ while [ "$slot" -le "$max_slots" ]; do
     set -- "$@" "-Resume" "" ""
     resume_any=1
   fi
-  res_open="run-shell \"sh '$script_dir/open.sh' '${name}-resume' '$resume_cmd' '$project_path' '$current_session' '$current_client' '$current_pane'\""
+  res_open="run-shell \"sh $q_open $(shell_quote "${name}-resume") $(shell_quote "$resume_cmd") $q_path $q_session $q_client $q_pane\""
   set -- "$@" "⟲ $name" "" "$res_open"
 done
 
 set -- "$@" ""
-set -- "$@" "All agents (every project)…" "a" "run-shell \"sh '$script_dir/menu.sh' '$current_client' '$current_session' '$current_path' '$current_pane'\""
+set -- "$@" "All agents (every project)…" "a" "run-shell \"sh $q_menu $q_client $q_session $q_cur_path $q_pane\""
 set -- "$@" "Cancel" "q" ""
 
 tmux display-menu "$@"

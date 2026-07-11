@@ -26,7 +26,11 @@ else
   session="$(agent_session_name "$project_path")"
 fi
 
-if ! tmux has-session -t "$session" 2>/dev/null; then
+# "=" forces an exact session-name match: without it tmux falls back to prefix
+# matching, so a missing "cli-web" would silently resolve to a different
+# project's "cli-web-9f72". Once the exact session exists (or is created here),
+# later fuzzy targets resolve exact-first and are safe.
+if ! tmux has-session -t "=$session" 2>/dev/null; then
   tmux new-session -d -s "$session" -n "$agent_name" -c "$project_path" "$agent_command"
 elif ! window_exists "$session" "$agent_name"; then
   tmux new-window -d -t "$session:" -n "$agent_name" -c "$project_path" "$agent_command"

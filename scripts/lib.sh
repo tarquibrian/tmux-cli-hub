@@ -5,6 +5,14 @@ tmux_option() {
   [ -n "$value" ] && printf "%s" "$value" || printf "%s" "$2"
 }
 
+# Single-quote a value for embedding in a shell command string (menu item
+# commands, bind commands). Survives spaces and quotes; the only caveat is a
+# literal $ passing through tmux's own command parser, which is unavoidable
+# at this layer.
+shell_quote() {
+  printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+}
+
 project_root() {
   git -C "$1" rev-parse --show-toplevel 2>/dev/null || printf "%s" "$1"
 }
@@ -27,7 +35,7 @@ path_hash() {
 # other character to "-" and squeeze/trim so a project basename becomes a safe,
 # readable session component.
 sanitize_component() {
-  printf "%s" "$1" | tr -c 'A-Za-z0-9_-' '-' | sed -e 's/-\{2,\}/-/g' -e 's/^-//' -e 's/-$//'
+  printf "%s" "$1" | LC_ALL=C tr -c 'A-Za-z0-9_-' '-' | sed -e 's/-\{2,\}/-/g' -e 's/^-//' -e 's/-$//'
 }
 
 # Readable session name: agents-<project> (e.g. agents-tmux-cli-hub). The short
@@ -150,7 +158,7 @@ agent_choose_format() {
   sstyle='#{?#{==:#{@cli_hub_status},dead},#[fg=red],#{?#{==:#{@cli_hub_status},needs-input},#[fg=yellow],#{?#{==:#{@cli_hub_status},active},#[fg=green],#[fg=colour244]}}}'
   yolo='#{?#{==:#{@cli_hub_mode},auto},#[fg=yellow]⚡ #[default],}'
   name='#{?#{@cli_hub_agent_name},#{@cli_hub_agent_name},#{window_name}}'
-  info='#{=/38/…:#{?#{pane_title},#{pane_title},#{@cli_hub_title}}}'
+  info='#{=/38/…:#{pane_title}}'
 
   wline="${istyle}${icon}#[default] #[bold]#{p14:${name}}#[default] ${sstyle}${sglyph} #{p10:#{@cli_hub_status}}#[default] ${yolo}#[fg=colour244]#{t/f/%R:window_activity}  #[fg=colour244]${info}#[default]"
   sline='#[bold]▣ #{?#{@cli_hub_project_name},#{@cli_hub_project_name},#{session_name}}#[default]  #[fg=colour244]#{@cli_hub_project_path}#[default]'

@@ -19,7 +19,9 @@ project_path="$(project_root "$current_path")"
 project_hash="$(path_hash "$project_path")"
 session="$(agent_session_name "$project_path")"
 
-if tmux has-session -t "$session" 2>/dev/null; then
+# "=" = exact match; plain -t would prefix-match a different project's
+# "cli-web-9f72" when "cli-web" itself doesn't exist.
+if tmux has-session -t "=$session" 2>/dev/null; then
   set_session_metadata "$session" "$project_path" "$project_hash"
   set_popup_parent "$session" "$target_client" "$target_pane"
   open_popup "$target_client" "$project_path" "$session" "$(project_name "$project_path")"

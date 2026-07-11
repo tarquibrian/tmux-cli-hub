@@ -190,7 +190,7 @@ simply gets no Resume entry.
 
 | Option | Default | Meaning |
 |--------|---------|---------|
-| `@cli_hub_session_prefix` | `agents` | Prefix for the per-project tmux sessions |
+| `@cli_hub_session_prefix` | `agents` | Prefix for the per-project tmux sessions (letters/digits/`_`/`-` only) |
 | `@cli_hub_hash_length` | `8` | Hash length used for project hashing / collision suffixes |
 | `@cli_hub_popup_width` | `80%` | Popup width |
 | `@cli_hub_popup_height` | `80%` | Popup height |
@@ -216,6 +216,17 @@ set -g @resurrect-hook-post-save-all 'sh ~/.config/tmux/plugins/tmux-cli-hub/scr
 It strips `cli-*` / `agents-*` (and a sibling acp-hub's `acp-*` / `vz-*`) from
 each save, so a restore never resurrects a dead agent. Real history is
 untouched — it was never in resurrect to begin with.
+
+## Tests
+
+```sh
+tests/smoke.sh
+```
+
+Drives every script against a throwaway tmux server (its own socket — your
+real server is never touched): session naming and collisions, the status
+heuristic, the close/prune lifecycle, menu construction, quoting of hostile
+paths, and the resurrect filter. Exit 0 = all checks passed.
 
 ## Uninstall
 

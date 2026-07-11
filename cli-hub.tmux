@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
 CURRENT_DIR="$(cd "$(dirname "$0")" && pwd)"
+. "$CURRENT_DIR/scripts/lib.sh"
 
 set_default() {
   option="$1"
@@ -46,15 +47,25 @@ tmux unbind-key -q y
 tmux unbind-key -q X
 tmux unbind-key -q M
 
+# Static parts (script path, agent name/command) are shell-quoted at bind time;
+# runtime values expand through #{q:...} so paths or session names containing
+# quotes or spaces can't break — or inject into — the shell command. Each
+# format is wrapped as #{?X,#{q:X},''} so an empty value still emits '' and
+# the positional arguments after it can't shift.
+fmt_arg() {
+  printf "#{?%s,#{q:%s},''}" "$1" "$1"
+}
+
 bind_agent_open() {
   key="$1"
   name="$2"
   command="$3"
 
   [ -n "$key" ] || return 0
+  [ -n "$name" ] || return 0
   [ -n "$command" ] || return 0
 
-  tmux bind-key -r "$key" run-shell "sh \"$CURRENT_DIR/scripts/open.sh\" \"$name\" \"$command\" \"#{pane_current_path}\" \"#{session_name}\" \"#{client_name}\" \"#{pane_id}\""
+  tmux bind-key -r "$key" run-shell "sh $(shell_quote "$CURRENT_DIR/scripts/open.sh") $(shell_quote "$name") $(shell_quote "$command") $(fmt_arg pane_current_path) $(fmt_arg session_name) $(fmt_arg client_name) $(fmt_arg pane_id)"
 }
 
 max_slots="$(tmux show-option -gqv @cli_hub_agent_max_slots)"
@@ -78,8 +89,16 @@ while [ "$slot" -le "$max_slots" ]; do
   slot=$((slot + 1))
 done
 
-tmux bind-key m run-shell "sh \"$CURRENT_DIR/scripts/toggle.sh\" \"#{client_name}\" \"#{session_name}\" \"#{pane_current_path}\" \"#{pane_id}\""
-tmux bind-key s run-shell "sh \"$CURRENT_DIR/scripts/session-menu.sh\" \"#{client_name}\" \"#{session_name}\" \"#{pane_id}\""
-tmux bind-key y run-shell "sh \"$CURRENT_DIR/scripts/menu.sh\" \"#{client_name}\" \"#{session_name}\" \"#{pane_current_path}\" \"#{pane_id}\""
-tmux bind-key X run-shell "sh \"$CURRENT_DIR/scripts/close.sh\" menu \"#{client_name}\" \"#{session_name}\" \"#{pane_id}\" \"#{window_id}\" \"#{window_name}\" \"#{pane_current_path}\""
-tmux bind-key M run-shell "sh \"$CURRENT_DIR/scripts/menu-overlay.sh\" \"#{client_name}\" \"#{session_name}\" \"#{pane_id}\" \"#{pane_current_path}\""
+scripts_q="$(shell_quote "$CURRENT_DIR/scripts")"
+a_client="$(fmt_arg client_name)"
+a_session="$(fmt_arg session_name)"
+a_path="$(fmt_arg pane_current_path)"
+a_pane="$(fmt_arg pane_id)"
+a_wid="$(fmt_arg window_id)"
+a_wname="$(fmt_arg window_name)"
+
+tmux bind-key m run-shell "sh $scripts_q/toggle.sh $a_client $a_session $a_path $a_pane"
+tmux bind-key s run-shell "sh $scripts_q/session-menu.sh $a_client $a_session $a_pane"
+tmux bind-key y run-shell "sh $scripts_q/menu.sh $a_client $a_session $a_path $a_pane"
+tmux bind-key X run-shell "sh $scripts_q/close.sh menu $a_client $a_session $a_pane $a_wid $a_wname $a_path"
+tmux bind-key M run-shell "sh $scripts_q/menu-overlay.sh $a_client $a_session $a_pane $a_path"

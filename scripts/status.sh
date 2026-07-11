@@ -16,28 +16,37 @@ now="$(date +%s)"
 #   running     (low)   alive, nothing else known
 is_shell_command() {
   case "$1" in
-    sh|bash|zsh|fish|dash|ksh|ksh93|mksh|tcsh|csh|ash|-sh|-bash|-zsh) return 0 ;;
+    sh|bash|zsh|fish|dash|ksh|ksh93|mksh|tcsh|csh|ash|-sh|-bash|-zsh|-fish) return 0 ;;
     *) return 1 ;;
   esac
 }
 
-tmux list-windows -a -F "#{session_name}|#{window_id}|#{window_name}|#{pane_id}|#{pane_dead}|#{pane_title}|#{window_activity}|#{pane_current_command}|#{@cli_hub_provider}|#{@cli_hub_command}" 2>/dev/null |
-while IFS='|' read -r session window_id window_name pane_id pane_dead pane_title window_activity current_command provider command; do
+# One list-windows drives the whole poll. #{pane_title} is the only field an
+# agent controls and may contain the "|" delimiter, so it goes LAST — the
+# final `read` variable absorbs the rest of the line, separators included.
+# #{@cli_hub_project_path} resolves the session-scoped option from the window
+# context, saving a show-option round-trip per window; #{@cli_hub_status} lets
+# us skip the write when nothing changed, so a steady-state poll costs a
+# single tmux call in total.
+tmux list-windows -a -F "#{session_name}|#{window_id}|#{window_name}|#{pane_dead}|#{window_activity}|#{pane_current_command}|#{@cli_hub_provider}|#{@cli_hub_status}|#{@cli_hub_project_path}|#{pane_title}" 2>/dev/null |
+while IFS='|' read -r session window_id window_name pane_dead window_activity current_command provider old_status sess_path pane_title; do
   case "$session" in
     "$prefix"-*) ;;
     *) continue ;;
   esac
 
-  project_path="$(tmux show-option -t "$session" -qv @cli_hub_project_path)"
-  [ -n "$project_path" ] || project_path="$(tmux display-message -p -t "$window_id" "#{pane_current_path}" 2>/dev/null)"
-  [ -n "$project_path" ] && set_session_metadata "$session" "$project_path" "$(path_hash "$project_path")"
+  # Heal missing session metadata (adopted/foreign sessions only).
+  if [ -z "$sess_path" ]; then
+    sess_path="$(tmux display-message -p -t "$window_id" "#{pane_current_path}" 2>/dev/null)"
+    [ -n "$sess_path" ] && set_session_metadata "$session" "$sess_path" "$(path_hash "$sess_path")"
+  fi
 
+  # Heal missing window metadata, one tmux call for the three options.
   if [ -z "$provider" ]; then
-    provider="$(agent_provider "$window_name" "$command")"
-    mode="$(agent_mode "$window_name")"
-    tmux set-window-option -t "$window_id" -q @cli_hub_agent_name "$window_name"
-    tmux set-window-option -t "$window_id" -q @cli_hub_provider "$provider"
-    tmux set-window-option -t "$window_id" -q @cli_hub_mode "$mode"
+    provider="$(agent_provider "$window_name" "")"
+    tmux set-window-option -t "$window_id" -q @cli_hub_agent_name "$window_name" \; \
+         set-window-option -t "$window_id" -q @cli_hub_provider "$provider" \; \
+         set-window-option -t "$window_id" -q @cli_hub_mode "$(agent_mode "$window_name")"
   fi
 
   # Strong signals (dead / exited) are checked first so they win over the weak
@@ -55,6 +64,6 @@ while IFS='|' read -r session window_id window_name pane_id pane_dead pane_title
     status="active"
   fi
 
-  tmux set-window-option -t "$window_id" -q @cli_hub_status "$status"
-  tmux set-window-option -t "$window_id" -q @cli_hub_title "$pane_title"
+  [ "$status" = "$old_status" ] || \
+    tmux set-window-option -t "$window_id" -q @cli_hub_status "$status"
 done

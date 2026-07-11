@@ -199,6 +199,88 @@ kept="$(awk -F'\t' '$1=="pane"||$1=="window"{print $2}' "$save" | sort -u | tr '
 case " $kept " in *" work "*) ok "resurrect filter keeps work session";; *) no "keeps work" "$kept";; esac
 case "$kept" in *cli-*|*agents-*|*acp-*|*vz-*) no "resurrect filter drops hub sessions" "$kept";; *) ok "resurrect filter drops cli/agents/acp/vz";; esac
 
+# Custom prefix: sessions under @cli_hub_session_prefix are also dropped.
+T set-option -g @cli_hub_session_prefix bots
+{
+  printf 'pane\twork\t0\tzsh\t1\t\t0\t:zsh\t/home\t1\tzsh\t1\n'
+  printf 'pane\tbots-x\t0\tclaude\t1\t\t0\t:claude\t/x\t1\tzsh\t9\n'
+} > "$save"
+ln -sf "$(basename "$save")" "$RDIR/last"
+sh "$SCRIPTS/resurrect-exclude.sh"
+kept2="$(awk -F'\t' '{print $2}' "$save" | tr '\n' ' ')"
+case "$kept2" in *bots-x*) no "resurrect filter honours custom prefix" "$kept2";; *) ok "resurrect filter honours custom prefix";; esac
+case " $kept2 " in *" work "*) ok "custom-prefix run keeps work";; *) no "custom-prefix keeps work" "$kept2";; esac
+T set-option -g @cli_hub_session_prefix agents
+
+echo "== pipe in pane title (field-shift regression) =="
+T new-session -d -s agents-pipe -x 80 -y 24 "sleep 300"
+T set-option -t agents-pipe -q @cli_hub_project_path /tmp/proj/pipe
+pp="$(T list-windows -t agents-pipe -F '#{pane_id}' | head -1)"
+T select-pane -t "$pp" -T "left|needs permission to edit|right"
+sh "$SCRIPTS/status.sh"
+st="$(T list-windows -t agents-pipe -F '#{@cli_hub_status}' | head -1)"
+chk "piped title still parses -> needs-input" "needs-input" "$st"
+
+echo "== exact-match guard (prefix-sibling session) =="
+# Only agents-demo-abcd exists; the overlay for a project whose candidate is
+# agents-demo must NOT count the sibling's windows (list-windows prefix-matches).
+T new-session -d -s agents-demo-abcd -x 80 -y 24 "sleep 300"
+cat > "$SHIM/tmux" <<EOF
+#!/bin/sh
+if [ "\$1" = "display-menu" ]; then
+  shift; : > "$DUMP"
+  for a in "\$@"; do printf '%s\n' "\$a" >> "$DUMP"; done
+  exit 0
+fi
+exec "$REAL_TMUX" -L "$SOCK" "\$@"
+EOF
+chmod +x "$SHIM/tmux"
+sh "$SCRIPTS/menu-overlay.sh" dummyclient work %0 /tmp/nowhere/demo >/dev/null 2>&1
+has "sibling session not miscounted"  "no agents yet"
+if grep -Fq -e "-Live agents" -- "$DUMP"; then no "no live rows from sibling" "found -Live agents"; else ok "no live rows from sibling"; fi
+
+echo "== quoted project path (space + apostrophe) =="
+QP="$TMP/pro j'ect"
+mkdir -p "$QP"
+sh "$SCRIPTS/menu-overlay.sh" dummyclient work %0 "$QP" >/dev/null 2>&1
+has "overlay escapes apostrophe path"  "j'\\''ect"
+inner="$(grep -F "open.sh" "$DUMP" | head -1 | sed 's/^run-shell "//; s/"$//')"
+if sh -n -c "$inner" 2>"$TMP/qerr"; then ok "menu command parses as shell"; else no "menu command parses" "$(cat "$TMP/qerr")"; fi
+# restore the pass-through shim and actually open an agent in that path
+cat > "$SHIM/tmux" <<EOF
+#!/bin/sh
+exec "$REAL_TMUX" -L "$SOCK" "\$@"
+EOF
+chmod +x "$SHIM/tmux"
+sh "$SCRIPTS/open.sh" claude "sleep 300" "$QP" work "" "" >/dev/null 2>&1
+qsess="$(T list-sessions -F '#{session_name}' | grep '^agents-pro-j-ect' | head -1)"
+chk "quoted path -> sanitized session" "agents-pro-j-ect" "$qsess"
+# macOS reports the realpath (/var -> /private/var), so compare by suffix.
+qcwd="$(T display-message -p -t "agents-pro-j-ect:claude" '#{pane_current_path}' 2>/dev/null)"
+case "$qcwd" in
+  *"/pro j'ect") ok "agent cwd is the quoted path";;
+  *) no "agent cwd is the quoted path" "$qcwd";;
+esac
+
+echo "== steady-state poll cost =="
+# After one stabilising poll, a second poll with nothing changed must cost
+# exactly 3 tmux calls (2 tmux_option reads + 1 list-windows) and 0 writes.
+T set-option -g -q @cli_hub_active_secs 1
+sleep 2
+sh "$SCRIPTS/status.sh"
+cat > "$SHIM/tmux" <<EOF
+#!/bin/sh
+printf '%s\n' "\$1" >> "$TMP/calls"
+exec "$REAL_TMUX" -L "$SOCK" "\$@"
+EOF
+chmod +x "$SHIM/tmux"
+: > "$TMP/calls"
+sh "$SCRIPTS/status.sh"
+total="$(wc -l < "$TMP/calls" | tr -d ' ')"
+writes="$(grep -c 'set-window-option' "$TMP/calls")"
+chk "steady poll: 3 tmux calls" "3" "$total"
+chk "steady poll: 0 writes" "0" "$writes"
+
 echo
 echo "RESULT: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
