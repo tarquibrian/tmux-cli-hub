@@ -181,6 +181,24 @@ case "$render" in *❋*)      ok "claude icon (❋) renders";;      *) no "claud
 case "$render" in *active*)  ok "status word renders";;          *) no "status word" "$render";; esac
 case "$render" in *"claude title"*) ok "pane title shown";;      *) no "pane title" "$render";; esac
 
+echo "== resurrect exclude filter =="
+RDIR="$TMP/resurrect"; mkdir -p "$RDIR"
+T set-option -g @resurrect-dir "$RDIR"
+save="$RDIR/tmux_resurrect_test.txt"
+{
+  printf 'pane\twork\t0\tzsh\t1\t\t0\t:zsh\t/home\t1\tzsh\t1\n'
+  printf 'window\twork\t0\tzsh\t1\t*\n'
+  printf 'pane\tcli-config\t0\tclaude\t1\t\t0\t:claude\t/cfg\t1\tzsh\t9\n'
+  printf 'window\tagents-x\t0\tclaude\t1\t*\n'
+  printf 'pane\tacp-foo\t0\tcodex\t1\t\t0\t:codex\t/foo\t1\tzsh\t9\n'
+  printf 'window\tvz-bar\t0\tclaude\t1\t*\n'
+} > "$save"
+ln -sf "$(basename "$save")" "$RDIR/last"
+sh "$SCRIPTS/resurrect-exclude.sh"
+kept="$(awk -F'\t' '$1=="pane"||$1=="window"{print $2}' "$save" | sort -u | tr '\n' ' ')"
+case " $kept " in *" work "*) ok "resurrect filter keeps work session";; *) no "keeps work" "$kept";; esac
+case "$kept" in *cli-*|*agents-*|*acp-*|*vz-*) no "resurrect filter drops hub sessions" "$kept";; *) ok "resurrect filter drops cli/agents/acp/vz";; esac
+
 echo
 echo "RESULT: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

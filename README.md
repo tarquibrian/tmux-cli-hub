@@ -187,6 +187,25 @@ simply gets no Resume entry.
 | `@cli_hub_agent_max_slots` | `20` | How many `@cli_hub_agent_N` slots to scan |
 | `@cli_hub_resume_<provider>` | per provider | Resume command used by the `M` overlay (`""` hides the entry) |
 
+## tmux-resurrect / continuum
+
+cli-hub keeps no state of its own — each agent's history lives in its own CLI
+(reach it again with `M` → Resume) — so there's nothing here for
+[resurrect](https://github.com/tmux-plugins/tmux-resurrect) to save. But
+resurrect saves *every* session, agent sessions included, and on restore they
+come back as hollow shells: the agent process isn't relaunched (it's not in
+`@resurrect-processes`) and the `@cli_hub_*` metadata isn't saved, so you get
+empty skeleton sessions. If you use resurrect/continuum auto-save, exclude the
+agent sessions from the save with the bundled hook:
+
+```tmux
+set -g @resurrect-hook-post-save-all 'sh ~/.config/tmux/plugins/tmux-cli-hub/scripts/resurrect-exclude.sh'
+```
+
+It strips `cli-*` / `agents-*` (and a sibling acp-hub's `acp-*` / `vz-*`) from
+each save, so a restore never resurrects a dead agent. Real history is
+untouched — it was never in resurrect to begin with.
+
 ## Uninstall
 
 Remove the `run` line from `tmux.conf`. Agent sessions aren't killed
