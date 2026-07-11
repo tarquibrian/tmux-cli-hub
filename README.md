@@ -4,6 +4,9 @@ A lightweight popup hub for AI CLI agents in tmux. Launch Claude Code, Codex,
 Gemini, opencode, or any CLI-based agent in a persistent, per-project tmux
 session, shown as a popup.
 
+![Claude Code running in a cli-hub popup over Neovim, with the project's agents
+in the tmux status line](assets/popup.png)
+
 - **Persistent** — each project gets its own tmux session; close the popup,
   the agent keeps running in the background as a normal tmux session.
 - **Configurable** — pick your own keybindings and CLI commands per agent,
@@ -145,6 +148,12 @@ slot 5 from loading.
   `exited`) are reliable for any CLI; the rest are hints. For real,
   protocol-backed status use [tmux-acp-hub](https://github.com/tarquibrian/tmux-acp-hub).
 
+`prefix + s` inside a popup shows the same rows as an expanded tree — provider
+icon, status, last activity, the CLI's own title — with tmux's live preview of
+the selected agent:
+
+![prefix + s inside a popup: an expanded tree of agents with status and a live preview pane](assets/switcher.png)
+
 ## The agent overlay (`prefix + M`) and history
 
 `M` opens one native menu for the current project:
@@ -152,6 +161,8 @@ slot 5 from loading.
 - **Live agents** — the running agents in this project; pick one to jump to it.
 - **New `<provider>`** — launch a fresh agent, same as its open key.
 - **Resume `<provider>`** — launch the CLI in its own resume mode.
+
+<img src="assets/menu.png" alt="The prefix+M overlay grouped into Live agents, Start new, and Resume sections" width="320">
 
 cli-hub keeps **no history of its own** — it's an external launcher, and each
 CLI already stores and resumes its own past sessions. "Resume" just runs the
